@@ -9,9 +9,11 @@ Please note that you should have at least basic experience extending marmalade Q
 
 Also, before beginning, users should take into account that the results of this implementation may vary, especially in lower end devices in which paralell request processing will probably bog down the main (LUA) thread. Use responsibly.
 
+*NOTE:* I wrote the guidelines for Windows systems. If you use a Mac then go ask Steve Jobs.
+
 Installing Async HTTP:
 ----------------------
-The easiest way to integrate this library into Marmalade Quick is to follow the official documentation for extending Quick (mentioned earlier). Here you will find a detailed guide with all the steps needed (*it's fairly straightforward when you did it two or three times, just have patience*). The only thing you need outside of Marmalade's guide is the source code in this repo.
+The easiest way to integrate this library into Marmalade Quick is to follow the official documentation for extending Quick (mentioned earlier). In it you will find a detailed guide with all the steps needed (*it's fairly straightforward when you've done it two or three times, just have patience*). The only thing you need outside of Marmalade's guide is the source code in this repo.
 
 Prerequisites:
 --------------
