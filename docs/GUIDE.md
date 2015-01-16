@@ -108,14 +108,14 @@ Simple LUA sample:
     ahttp.downloadURL("http://www.google.com/favicon.ico", "google_favicon.ico")
     
 
-*NOTE:* In addition to *complete* and *error* status events, the API will dispatch "begin" (when a net connection is established) and "progress" events (for content that takes more than one cycle to read).
+*NOTE:* In addition to *complete* and *error* status events, the API will dispatch *begin* (when a net connection is established) and "progress" events (for content that takes more than one cycle to read).
 
 Here's a brief of the event parameters:
 
     http_event {
       status,
       error_code,
-      progress,
+      percent,
       url,
       filename
     }
@@ -123,7 +123,7 @@ Here's a brief of the event parameters:
 *status* values (STRING):
 
 - "begin": Connection with remote server achieved, fetching data.
-- "in_progress": Getting data from server.
+- "in_progress": Getting data from server, dispatched when a file takes time to fetch/read.
 - "complete": Request completed successfully (and data dumped to file).
 - "error": An error occurred (both HTTP and/or connection errors here)
 
@@ -135,6 +135,6 @@ Here's a brief of the event parameters:
 
 Other values:
 
-- *progress* (FLOAT): a float between 0 and 1, indicating socket read progress, ingnore unless the event status is "in_progress".
+- *percent* (FLOAT): a float between 0 and 1, indicating socket read progress, ingnore unless the event status is "in_progress".
 - *url* (STRING): the request's remote URL.
 - *filename* (STRING): the request's local file URL (to which the stream will be downloaded)
