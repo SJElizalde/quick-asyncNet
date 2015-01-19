@@ -214,6 +214,7 @@ void kidloom_loader::Loader::notifyStatus() {
 	quick::LUA_EVENT_PREPARE("http_event");
 	quick::LUA_EVENT_SET_STRING("url", remote_url);
 	quick::LUA_EVENT_SET_STRING("filename", local_url);
+	IwDebugTraceLinePrintf(">>>          %s: '%s'\n", getStatusString(), remote_url);
 	if (net_connection && status != ERROR) {
 		float percent = (float)net_connection->ContentReceived() / (float)net_connection->ContentLength();
 		quick::LUA_EVENT_SET_NUMBER("percent", percent);
@@ -302,7 +303,10 @@ s3eThread* kidloom_loader::Loader::getThreadHandle() {
 
 //-------------------------------------------------------------------------
 kidloom_loader::Loader::~Loader() {
-	s3eFree(content);
+	if (status == COMPLETE && content_length > 0) {
+		// If a download was performed and completed, free buffer memory
+		s3eFree(content);
+	}
 	if (net_connection) {
 		net_connection->Cancel(true);
 	}
