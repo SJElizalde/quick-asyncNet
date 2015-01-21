@@ -120,7 +120,7 @@ Simple LUA sample:
       if evt.status = "complete" then
         print("Download complete !")
       elseif evt.status == "error" then
-        print("Download error (" .. evt.error_code .. ")")
+        print("Download error (" .. evt.ecode .. ")")
       end
     end
     -- Add http event listener to catch complete and / or errors
@@ -135,7 +135,7 @@ Here's a brief of the event parameters:
 
     http_event {
       status,
-      error_code,
+      ecode,
       percent,
       url,
       filename
@@ -148,11 +148,11 @@ Here's a brief of the event parameters:
 - "complete": Request completed successfully (and data dumped to file).
 - "error": An error occurred (both HTTP and/or connection errors here)
 
-**error_code** values (INT):
+**ecode** values (INT):
 
 - 0: Operation OK, no errors.
 - 1: Connection Error (invalidated socket, connection timeout, bad gateway)
-- XXX: all values other than 0 or 1 corresponde to HTTP response codes (*i.e. 200 is OK, 404 is NOT FOUND*)
+- XXX: all values other than 0 or 1 correspond to HTTP response codes (*i.e. 200 is OK, 404 is NOT FOUND*)
 
 Other values:
 
