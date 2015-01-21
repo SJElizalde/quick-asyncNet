@@ -29,9 +29,9 @@ Copy the contents of "quickuser" in this repo to the Marmalade SDK location's "/
 
 **2) ADD IWHTTP TO THE PROJECT PATH**
 
-Open "MARMALADE/quick/quick.mkb", find the subprojects section (at the bottom of the file) and add *iwhttp*. This will include marmalade C++'s http library, required to implement async downloading in quick.
+Open *'MARMALADE/quick/quick.mkb'*, find the subprojects section (at the bottom of the file) and add *iwhttp*. This will include marmalade C++'s http library, required to implement async downloading in quick.
 
-Subprojects should now look like this:
+The *subprojects* section of *'quick.mkb'* should now look like this:
 
     subprojects
     {
@@ -39,16 +39,18 @@ Subprojects should now look like this:
         quickuser
         s3eFacebook
         s3eWebView
-        iwhttp
         iwbilling
         s3eFlurry
+        iwhttp
     }
+    
+You should see GCC building iwhttp related files (such as CIwHTTP.cpp) in Marmalade's build output from now on.
 
 **3) ADD SOURCE FILES TO quickuser_tolua.pkg**
 
-Open "MARMALADE/quick/quickuser_tolua.pkg", add the following line:
+Open *'MARMALADE/quick/quickuser_tolua.pkg'*, add the following line:
 
-    $cfile "quickuser/AHTTP.h
+    $cfile "quickuser/AHTTP.h"
 
 If you are starting from scratch with the default file, it sould now look like this:
 
@@ -62,7 +64,7 @@ If you are starting from scratch with the default file, it sould now look like t
 
 I am not exactly sure if this is required, but I do it to keep the source files in my VS project, otherwise they seem to disappear (I never said I was a pro, did I?).
 
-Open the quickuser.mkf file in *MARMALADE/quick* and add references to all the files included in this library repo:
+Open the *'quickuser.mkf'* file in *'MARMALADE/quick'* and add references to all the files included in this library repo:
 
     AHTTP.h
     AHTTP.cpp
@@ -86,31 +88,31 @@ It should look like this if you started from scratch:
 	    Loader.cpp
     }
 
-*NOTE:* the *(quickuser)* notation indicates all the files below are in the */quickuser* directory inside the root.
+*NOTE:* the *(quickuser)* notation indicates all the files below are in the *'/quickuser'* directory inside the root.
 
 **4) RUN LUA CODE GENERATOR:**
 
-In a new cmd console go to "MARMALADE/quick" and enter the following command:
+In a new cmd console go to *'MARMALADE/quick'* and enter the following command:
 
     tools/tolua++.exe -o quickuser_tolua.cpp quickuser_tolua.pkg
 
-This should have added new LUA bindings to *quickuser_tolua.cpp*
+This should have added the new LUA bindings to *'quickuser_tolua.cpp'*, If you want, you can check this by opening the cpp file and searching for a **'downloadURL'** function or the "ahttp" namespace.
 
 **5) BUILD MARMALADE QUICK**
 
-Find quick_prebuilt.mkb in marmalade's /quick directory, right click it and select "build". In case this fails (usually due to RVCT licensing stuff on the RVCT builds), you can allways build the targets one by one either on the right click menu or from the Visual Studio project.
+Find quick_prebuilt.mkb in marmalade's *'/quick'* directory, right click it and select "build". In case this fails (usually due to RVCT licensing stuff on the RVCT builds), you can allways build the targets one by one either on the right click menu or from the Visual Studio project.
 
 Grab a cup o' Joe, it may take a while....
 
 **THAT'S THAT!**
 
-if the builds went well, then enjoy yout parallel downloads!
+if the builds went well, then enjoy your parallel downloading!
 
 Using ASYNC HTTP from LUA:
 --------------------------
-Usage is extremely simple, if properly installed and compiled, a static module "ahttp" is made available through LUA. this module has a single method *downloadURL()*, which receives a remote URL and a local file URL.
+Usage is extremely simple, if properly installed and compiled, a static module **'ahttp'** is made available through LUA. this module has a **downloadURL** method, which receives a remote URL and a local file URL as parameters.
 
-Completion and error notices are sent to the LUA layer through Quick LUA's event system, by listening to the type "http_event" as you would normally [listen other system events](http://docs.madewithmarmalade.com/display/MD/Touch+and+Other+Events).
+Completion and error notices are sent to the LUA layer through Quick LUA's event system, by listening to the type **"http_event"** as you would normally [listen other system events](http://docs.madewithmarmalade.com/display/MD/Touch+and+Other+Events).
 
 Simple LUA sample:
 
@@ -127,7 +129,7 @@ Simple LUA sample:
     ahttp.downloadURL("http://www.google.com/favicon.ico", "google_favicon.ico")
     
 
-*NOTE:* In addition to *complete* and *error* status events, the API will dispatch *begin* (when a net connection is established) and "progress" events (for content that takes more than one cycle to read).
+*NOTE:* In addition to **complete** and **error** status events, the API will dispatch **begin** (when a net connection is established) and **progress** events (for content that takes more than one cycle to read).
 
 Here's a brief of the event parameters:
 
@@ -139,14 +141,14 @@ Here's a brief of the event parameters:
       filename
     }
 
-*status* values (STRING):
+**status** values (STRING):
 
 - "begin": Connection with remote server achieved, fetching data.
 - "in_progress": Getting data from server, dispatched when a file takes time to fetch/read.
 - "complete": Request completed successfully (and data dumped to file).
 - "error": An error occurred (both HTTP and/or connection errors here)
 
-*error_code* values (INT):
+**error_code** values (INT):
 
 - 0: Operation OK, no errors.
 - 1: Connection Error (invalidated socket, connection timeout, bad gateway)
@@ -154,6 +156,6 @@ Here's a brief of the event parameters:
 
 Other values:
 
-- *percent* (FLOAT): a float between 0 and 1, indicating socket read progress, ingnore unless the event status is "in_progress".
-- *url* (STRING): the request's remote URL.
-- *filename* (STRING): the request's local file URL (to which the stream will be downloaded)
+- **percent** (FLOAT): a float between 0 and 1, indicating socket read progress, ingnore unless the event status is 'in_progress'.
+- **url** (STRING): the request's remote URL.
+- **filename** (STRING): the request's local file URL (to which the stream will be downloaded)
