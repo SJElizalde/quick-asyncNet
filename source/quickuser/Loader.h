@@ -7,7 +7,7 @@
 
 #define MAX_CONCURRENT_DOWNLOADS 5
 #define HTTP_READ_TIMEOUT 120
-#define BASE_READ_CHUNK 1024
+#define BASE_READ_CHUNK 32768
 #define LUA_EVENT_NAME "http_event"
 
 enum LoaderStatus {
@@ -16,10 +16,12 @@ enum LoaderStatus {
 	DOWNLOADING,
 	COMPLETE,
 	ERROR,
+	DESTROYED
 };
 
 namespace kidloom_loader {
 	
+	using namespace std;
 	typedef void(*loaderCallback)(void*);
 	//-------------------------------------------------------------------------
 	// Loader class encapsulates both the http connection and local file
@@ -29,9 +31,12 @@ namespace kidloom_loader {
 		char* local_url;
 		char* remote_url;
 		
+		uint32 slot;
 		uint32 error_code;
-		uint32 content_length;
-		char* content;
+		uint32 buffer_size;
+		uint32 bytes_read;
+		uint32 bytes_written;
+		char* buffer;
 
 		CIwHTTP* net_connection;
 		s3eThread* thread_handle;
@@ -41,7 +46,7 @@ namespace kidloom_loader {
 
 		
 	public:
-		Loader(char* url, char* filename);
+		Loader(uint32 slot, char* url, char* filename);
 		~Loader();
 
 		bool load();
@@ -50,6 +55,7 @@ namespace kidloom_loader {
 		bool checkRequestStatus();
 		void notifyStatus();
 
+		uint32 getSlot();
 		char* getRemoteURL();
 		char* getLocalURL();
 		char* getStatusString();
@@ -67,6 +73,9 @@ namespace kidloom_loader {
 	//-------------------------------------------------------------------------
 	// Loaders
 	extern Loader* loaders[MAX_CONCURRENT_DOWNLOADS];
+
+	//-------------------------------------------------------------------------
+	extern uint32 current_downlaods;
 
 	//-------------------------------------------------------------------------
 	// Loaders call this method when completed
