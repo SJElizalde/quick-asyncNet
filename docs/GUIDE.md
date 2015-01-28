@@ -29,7 +29,7 @@ Copy the contents of "quickuser" in this repo to the Marmalade SDK location's "/
 
 **2) ADD IWHTTP TO THE PROJECT PATH**
 
-Open *'MARMALADE/quick/quick.mkb'*, find the subprojects section (at the bottom of the file) and add *iwhttp*. This will include marmalade C++'s http library, required to implement async downloading in quick.
+Open *'MARMALADE_HOME/quick/quick.mkb'*, find the subprojects section (at the bottom of the file) and add *iwhttp*. This will include marmalade C++'s http library, required to implement async downloading in quick.
 
 The *subprojects* section of *'quick.mkb'* should now look like this:
 
@@ -48,7 +48,7 @@ You should see GCC building iwhttp related files (such as CIwHTTP.cpp) in Marmal
 
 **3) ADD SOURCE FILES TO quickuser_tolua.pkg**
 
-Open *'MARMALADE/quick/quickuser_tolua.pkg'*, add the following line:
+Open *'MARMALADE_HOME/quick/quickuser_tolua.pkg'*, add the following line:
 
     $cfile "quickuser/AHTTP.h"
 
@@ -60,11 +60,13 @@ If you are starting from scratch with the default file, it sould now look like t
     $cfile "quickuser.h"
     $cfile "quickuser/AHTTP.h"
 
+The path you enter here must be relative to your *MARMALADE_HOME/quick* directory.
+
 **3.1) ADD ALL SOURCES TO PROJECT**
 
 I am not exactly sure if this is required, but I do it to keep the source files in my VS project, otherwise they seem to disappear (I never said I was a pro, did I?).
 
-Open the *'quickuser.mkf'* file in *'MARMALADE/quick'* and add references to all the files included in this library repo:
+Open the *'quickuser.mkf'* file in *'MARMALADE_HOME/quick'* and add references to all the files included in this library repo:
 
     AHTTP.h
     AHTTP.cpp
@@ -92,7 +94,7 @@ It should look like this if you started from scratch:
 
 **4) RUN LUA CODE GENERATOR:**
 
-In a new cmd console go to *'MARMALADE/quick'* and enter the following command:
+In a new cmd console go to *'MARMALADE_HOME/quick'* and enter the following command:
 
     tools/tolua++.exe -o quickuser_tolua.cpp quickuser_tolua.pkg
 
