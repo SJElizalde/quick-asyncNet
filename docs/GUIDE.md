@@ -112,11 +112,11 @@ if the builds went well, then enjoy your parallel downloading!
 
 Using ASYNC HTTP from LUA:
 --------------------------
-Usage is extremely simple, if properly installed and compiled, a static module **'ahttp'** is made available through LUA. this module has a **downloadURL** method, which receives a remote URL and a local file URL as parameters.
+Usage is extremely simple, if properly installed and compiled, the static module **ahttp** is made available through LUA. this module has a **downloadURL** method, which receives a remote URL and a local file URL as parameters. Once called, **downloadURL** will open a request to the remote URL and then proceed to download the contents into a file (thus the local URL).
 
 Completion and error notices are sent to the LUA layer through Quick LUA's event system, by listening to the type **"http_event"** as you would normally [listen other system events](http://docs.madewithmarmalade.com/display/MD/Touch+and+Other+Events).
 
-Simple LUA sample:
+Simple LUA sample (there's a more comprehensive test project in *source/examples*):
 
     function http_handler(evt)
       if evt.status = "complete" then
@@ -130,8 +130,11 @@ Simple LUA sample:
     -- Begin download
     ahttp.downloadURL("http://www.google.com/favicon.ico", "google_favicon.ico")
     
+**IMPORTANT:** For performance reasons, Async HTTP has a hard limit to concurrent downloads. This limit is **5 (FIVE CONCURRENT OPERATIONS)**. Calls to **downloadURL** while already processing 5 other requests will result in no action whatsoever, with no feedback of any type. Be sure to enforce this limit in your LUA implementation.
 
-*NOTE:* In addition to **complete** and **error** status events, the API will dispatch **begin** (when a net connection is established) and **progress** events (for content that takes more than one cycle to read).
+**HTTP EVENTS:**
+
+In addition to **complete** and **error** status events, the API will dispatch **begin** (when a net connection is established) and **progress** events (for content that takes more than one cycle to read).
 
 Here's a brief of the event parameters:
 
@@ -152,9 +155,10 @@ Here's a brief of the event parameters:
 
 **ecode** values (INT):
 
-- 0: Operation OK, no errors.
+- 0: Operation OK, no errors, no info.
 - 1: Connection Error (invalidated socket, connection timeout, bad gateway)
-- XXX: all values other than 0 or 1 correspond to HTTP response codes (*i.e. 200 is OK, 404 is NOT FOUND*)
+- 2: File Error (Unable to open file handle or failure to write data to disk)
+- XXX: all values other than 0, 1 and 2 correspond to HTTP response codes (*i.e. 200 is OK, 404 is NOT FOUND*)
 
 Other values:
 
