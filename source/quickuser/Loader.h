@@ -5,9 +5,9 @@
 #include "s3eThread.h"
 #include "IwHTTP.h"
 
-#define MAX_CONCURRENT_DOWNLOADS 10
+#define MAX_CONCURRENT_DOWNLOADS 5
 #define HTTP_READ_TIMEOUT 120
-#define BASE_READ_CHUNK 2048
+#define BASE_READ_CHUNK 32768
 #define LUA_EVENT_NAME "http_event"
 
 enum LoaderStatus {
@@ -35,6 +35,7 @@ namespace kidloom_loader {
 		uint32 error_code;
 		uint32 buffer_size;
 		uint32 bytes_read;
+		uint32 bytes_written;
 		char* buffer;
 
 		CIwHTTP* net_connection;

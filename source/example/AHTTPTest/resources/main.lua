@@ -1,5 +1,6 @@
 require("mobdebug").start()
-TEST_FILE_URL = "http://mirror.internode.on.net/pub/test/1meg.test"
+--TEST_FILE_URL = "http://mirror.internode.on.net/pub/test/1meg.test"
+TEST_FILE_URL = "http://storage.googleapis.com/tulum/book/105/pt/pages/"
 
 local current_dls = 0
 local total_dls = 0
@@ -20,18 +21,21 @@ button.yScale = 0.4
 
 function button:touch(event)
 	if (event.phase == "began") then
+    total_dls = 0
     start_dl()
     label.text = "PROCESSING " .. current_dls .. " FILES"
 	end
 end
 
 function start_dl()
-   while current_dls < 10 do
+   while current_dls < 5 and total_dls < 150 do
       current_dls = current_dls + 1
       total_dls = total_dls + 1
-      local filename = "file_1" .. total_dls .. ".test"
+      local filename = "file_" .. total_dls .. ".jpg"
       print("CALLING AHTTP to Download: " .. filename)
-      ahttp.downloadURL(TEST_FILE_URL, filename)
+      local url = TEST_FILE_URL .. (total_dls % 8) + 1 .. "_720.jpg"
+      --local url = TEST_FILE_URL .. "1_720.jpg"
+      ahttp.downloadURL(url, filename)
     end
 end
 

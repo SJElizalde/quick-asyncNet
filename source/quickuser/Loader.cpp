@@ -95,6 +95,7 @@ kidloom_loader::Loader::Loader(uint32 num, char* url, char* filename) {
 	strcpy(local_url, filename);
 	error_code = 0;
 	bytes_read = 0;
+	bytes_written = 0;
 	status = NONE;
 	this->net_connection = new CIwHTTP();
 }
@@ -191,10 +192,14 @@ bool kidloom_loader::Loader::readContent() {
 	}
 	IwDebugTraceLinePrintf(">>>          Writing buffer of [%d] bytes to %s\n", buffer_size, local_url);
 	uint32 read_len = net_connection->ContentReceived() - bytes_read;
-	uint32 written = s3eFileWrite(buffer, read_len, 1, file_handle);
+	//Don't touch the file if there's nothing to write
+	if (read_len > 0) {
+		uint32 written = s3eFileWrite(buffer, read_len, 1, file_handle);
+		bytes_written += written;
+	}
 	bytes_read = net_connection->ContentReceived();
-	IwDebugTraceLinePrintf(">>>          Total written to disk is [%d] bytes\n", bytes_read);
-
+	
+	
 	if (net_connection->ContentFinished()) {
 		// Close file, free buffer memory, set complete status and notify
 		s3eFileClose(file_handle);
@@ -207,13 +212,14 @@ bool kidloom_loader::Loader::readContent() {
 		// Calculate next buffer size and begin another read operation
 		buffer_size = net_connection->ContentExpected() - net_connection->ContentReceived();
 		buffer_size = (buffer_size > BASE_READ_CHUNK) ? BASE_READ_CHUNK : buffer_size;
-
-
+		
+		/*
 		// Reallocate buffer memory and read next chunk
 		if (sizeof(buffer) != buffer_size + 1) {
 			IwDebugTraceLinePrintf(">>>          Rellocating read buffer of [%d] bytes\n", buffer_size);
 			buffer = (char*)s3eRealloc(buffer, buffer_size + 1);
 		}
+		*/
 		net_connection->ReadDataAsync(buffer, buffer_size, HTTP_READ_TIMEOUT, http_dataReceived, this);
 	}
 	notifyStatus();
