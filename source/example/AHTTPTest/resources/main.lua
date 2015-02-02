@@ -20,6 +20,7 @@ button.xScale = 0.4
 button.yScale = 0.4
 
 function button:touch(event)
+  
 	if (event.phase == "began") then
     total_dls = 0
     start_dl()
