@@ -19,6 +19,20 @@ button.yAnchor = 0.5
 button.xScale = 0.4
 button.yScale = 0.4
 
+function parseAnimation(animData)
+  local label_data = {}
+  for key in animData:gmatch("%a*%p%a*[_]%d*") do
+    local label_name = key:sub(key:find("%a*[_]")):gsub("_", "")
+    local frame_name = key:sub(key:find("%a*[_]%d*"))
+    if not label_data[label_name] then
+      label_data[label_name] = {frame_name}
+    else
+      table.insert(label_data[label_name], frame_name)
+    end
+  end
+  return label_data
+end
+
 function button:touch(event)
   
 	if (event.phase == "began") then
