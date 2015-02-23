@@ -2,8 +2,7 @@
 * (C) 2014-2015 Kidloom.
 *
 * This class is designed to funnel a datastream from an HTTP connection into a file
-* handle within the local filesystem. Being multi-threading, it also includes a handle
-* to the thread in which the operation is being handled.
+* handle within the local filesystem.
 *
 * Author: S.J.Elizalde
 *         santa@kidloom.com
