@@ -29,9 +29,9 @@ Copy the contents of "quickuser" in this repo to the Marmalade SDK location's "/
 
 **2) ADD IWHTTP TO THE PROJECT PATH**
 
-Open *'MARMALADE_HOME/quick/quick.mkb'*, find the subprojects section (at the bottom of the file) and add *iwhttp*. This will include marmalade C++'s http library, required to implement async downloading in quick.
+Open *'MARMALADE_HOME/quick/quick.mkf'*, find the subprojects section (at the bottom of the file) and add *iwhttp*. This will include marmalade C++'s http library, required to implement async downloading in quick.
 
-The *subprojects* section of *'quick.mkb'* should now look like this:
+The *subprojects* section of *'quick.mkf'* should now look like this:
 
     subprojects
     {
