@@ -70,8 +70,11 @@ Open the *'quickuser.mkf'* file in *'MARMALADE_HOME/quick'* and add references t
 
     AHTTP.h
     AHTTP.cpp
-    Loader.h
-    Loader.cpp
+	AHTTPGlobals.h
+    AHTTPLoader.h
+    AHTTPLoader.cpp
+	AHTTPRequest.h
+    AHTTPRequest.cpp
 
 It should look like this if you started from scratch:
 
@@ -85,16 +88,19 @@ It should look like this if you started from scratch:
     
 	    (quickuser)
 	    AHTTP.h
-	    AHTTP.cpp
-	    Loader.h
-	    Loader.cpp
+		AHTTP.cpp
+		AHTTPGlobals.h
+		AHTTPLoader.h
+		AHTTPLoader.cpp
+		AHTTPRequest.h
+		AHTTPRequest.cpp
     }
 
 *NOTE:* the *(quickuser)* notation indicates all the files below are in the *'/quickuser'* directory inside the root.
 
 **4) RUN LUA CODE GENERATOR:**
 
-In a new cmd console go to *'MARMALADE_HOME/quick'* and enter the following command:
+In a new cmd/powershell console go to *'MARMALADE_HOME/quick'* and enter the following command:
 
     tools/tolua++.exe -o quickuser_tolua.cpp quickuser_tolua.pkg
 
@@ -114,7 +120,27 @@ if the builds went well, then enjoy your parallel downloading!
 
 Using ASYNC HTTP from LUA:
 --------------------------
-Usage is extremely simple, if properly installed and compiled, the static module **ahttp** is made available through LUA. this module has a **downloadURL** method, which receives a remote URL and a local file URL as parameters. Once called, **downloadURL** will open a request to the remote URL and then proceed to download the contents into a file (thus the local URL).
+Usage is fairly simple, if properly installed and compiled, the static module **ahttp** is made available through LUA. This module exposes two methods for performing requests, one does GET and POST requests and the other is used for dorect-downloading files. Both methods return an integer for indicating immediate errors with the call (0 means success). Both methods are explained below.
+
+**requestURL**
+This method receives the remote URL, http method (*get*, *post*) and request body. The request will be performed and the response will be sent through the 'complete' *http_event*.
+
+Simple LUA sample (there's a more comprehensive test project in *source/examples*):
+
+    function http_handler(evt)
+      if evt.status = "complete" then
+        print("Request complete, response: "..evt.result)
+      elseif evt.status == "error" then
+        print("Request error (" .. evt.ecode .. ")")
+      end
+    end
+    -- Add http event listener to catch complete and / or errors
+    system:addEventListener("http_event", http_handler)
+    -- Begin download
+    ahttp.requestURL("https://api.twitter.com/1.1/help/tos.json", "get", "{}")
+    
+**downloadURL**
+This method receives a remote URL and a local file URL as parameters. Once called, **downloadURL** will open a request to the remote URL and then proceed to download the contents into a file (thus the local URL).
 
 Completion and error notices are sent to the LUA layer through Quick LUA's event system, by listening to the type **"http_event"** as you would normally [listen other system events](http://docs.madewithmarmalade.com/display/MD/Touch+and+Other+Events).
 
@@ -132,7 +158,7 @@ Simple LUA sample (there's a more comprehensive test project in *source/examples
     -- Begin download
     ahttp.downloadURL("http://www.google.com/favicon.ico", "google_favicon.ico")
     
-**IMPORTANT:** For performance reasons, Async HTTP has a hard limit to concurrent downloads. This limit is **5 (FIVE CONCURRENT OPERATIONS)**. Calls to **downloadURL** while already processing 5 other requests will result in no action whatsoever, with no feedback of any type. Be sure to enforce this limit in your LUA implementation.
+**IMPORTANT:** For performance reasons, the Async HTTP library has a hard limit to concurrent downloads. This limit is **5 (FIVE CONCURRENT OPERATIONS)**. Calls to **downloadURL** or **requestURL** while already processing 5 other requests will result in no action(calls to both are cumulative), and the call will return **1** instead of the normal **0** to indicate an error.
 
 **HTTP EVENTS:**
 
@@ -145,6 +171,7 @@ Here's a brief of the event parameters:
       ecode,
       percent,
       url,
+	  result,
       filename
     }
 
@@ -166,4 +193,5 @@ Other values:
 
 - **percent** (FLOAT): a float between 0 and 1, indicating socket read progress, ingnore unless the event status is 'in_progress'.
 - **url** (STRING): the request's remote URL.
-- **filename** (STRING): the request's local file URL (to which the stream will be downloaded)
+- **filename** (STRING): the request's local file URL (to which the stream will be downloaded). only present for requests made through the *downloadURL()* method.
+- **result** (STRING): the request's result, only present when the status code is "complete" if the request was made through the *requestURL()* method.
