@@ -123,6 +123,7 @@ Using ASYNC HTTP from LUA:
 Usage is fairly simple, if properly installed and compiled, the static module **ahttp** is made available through LUA. This module exposes two methods for performing requests, one does GET and POST requests and the other is used for dorect-downloading files. Both methods return an integer for indicating immediate errors with the call (0 means success). Both methods are explained below.
 
 **requestURL**
+
 This method receives the remote URL, http method (*get*, *post*) and request body. The request will be performed and the response will be sent through the 'complete' *http_event*.
 
 Simple LUA sample (there's a more comprehensive test project in *source/examples*):
@@ -140,6 +141,7 @@ Simple LUA sample (there's a more comprehensive test project in *source/examples
     ahttp.requestURL("https://api.twitter.com/1.1/help/tos.json", "get", "{}")
     
 **downloadURL**
+
 This method receives a remote URL and a local file URL as parameters. Once called, **downloadURL** will open a request to the remote URL and then proceed to download the contents into a file (thus the local URL).
 
 Completion and error notices are sent to the LUA layer through Quick LUA's event system, by listening to the type **"http_event"** as you would normally [listen other system events](http://docs.madewithmarmalade.com/display/MD/Touch+and+Other+Events).
@@ -194,4 +196,4 @@ Other values:
 - **percent** (FLOAT): a float between 0 and 1, indicating socket read progress, ingnore unless the event status is 'in_progress'.
 - **url** (STRING): the request's remote URL.
 - **filename** (STRING): the request's local file URL (to which the stream will be downloaded). only present for requests made through the *downloadURL()* method.
-- **result** (STRING): the request's result, only present when the status code is "complete" if the request was made through the *requestURL()* method.
+- **result** (STRING): the request's result, only present when the status code is "complete", and if the request was made through the *requestURL()* method.
