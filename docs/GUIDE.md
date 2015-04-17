@@ -70,8 +70,11 @@ Open the *'quickuser.mkf'* file in *'MARMALADE_HOME/quick'* and add references t
 
     AHTTP.h
     AHTTP.cpp
-    Loader.h
-    Loader.cpp
+    AHTTPGlobals.h
+    AHTTPLoader.h
+    AHTTPLoader.cpp
+    AHTTPRequest.h
+    AHTTPRequest.cpp
 
 It should look like this if you started from scratch:
 
@@ -83,11 +86,14 @@ It should look like this if you started from scratch:
         quickuser_tolua.pkg
         quickuser.h
     
-	    (quickuser)
-	    AHTTP.h
-	    AHTTP.cpp
-	    Loader.h
-	    Loader.cpp
+	(quickuser)
+	AHTTP.h
+        AHTTP.cpp
+        AHTTPGlobals.h
+        AHTTPLoader.h
+        AHTTPLoader.cpp
+        AHTTPRequest.h
+        AHTTPRequest.cpp
     }
 
 *NOTE:* the *(quickuser)* notation indicates all the files below are in the *'/quickuser'* directory inside the root.
