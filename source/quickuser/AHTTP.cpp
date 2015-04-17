@@ -7,24 +7,67 @@
 #include "QLuaHelpers.h"
 #include "AHTTP.h"
 
-#define AHTTP_MAX_CONNECTIONS 3
-
-enum HTTPStatus {
-	kNone,
-	kDownloading,
-	kOK,
-	kError,
-};
+#define AHTTP_MAX_CONNECTIONS 6
 
 //------------------------------------------------------------------------------
-void ahttp::downloadURL(char* url, char* filename) {
-	printf("AHTTP: loadURL function\n");
-	kidloom_loader::openRequest(url, filename);
+uint32 ahttp::getMaxConnections() {
+	return AHTTP_MAX_CONNECTIONS;
+}
+//------------------------------------------------------------------------------
+uint32 ahttp::getActiveConnections() {
+	return ahttp_loader::current_downloads + ahttp_request::current_downloads;
+}
+//------------------------------------------------------------------------------
+uint32 ahttp::getAvailableConnections() {
+	return AHTTP_MAX_CONNECTIONS - getActiveConnections();
+}
+//------------------------------------------------------------------------------
+bool ahttp::downloadURL(char* url, char* filename) {
+	printf("AHTTP: downloadURL called.\n");
+	if (getActiveConnections() >= AHTTP_MAX_CONNECTIONS) {
+		return false;
+	}
+	return ahttp_loader::openRequest(url, filename);
+}
+//------------------------------------------------------------------------------
+bool ahttp::requestURL(char* url, char* method, char* body) {
+	printf("AHTTP: requestURL called\n");
+	uint32 current = ahttp_loader::current_downloads + ahttp_request::current_downloads;
+	if (getActiveConnections() >= AHTTP_MAX_CONNECTIONS) {
+		return false;
+	}
+	uint32 urlmethod = 0;
+	std::string strmethod = method;
+	if (strmethod == "post") {
+		urlmethod = 1;
+	}
+
+	return ahttp_request::openRequest(url, urlmethod, body);
 }
 
 //------------------------------------------------------------------------------
+void ahttp::addRequestHeader(char* key, char* value) {
+	printf("AHTTP: Setting header '%s': %s\n", key, value);
+	ahttp_request::addHeader(key, value);
+}
+
+//------------------------------------------------------------------------------
+void ahttp::removeRequestHeader(char* key) {
+	printf("AHTTP: Removing header '%s'\n", key);
+	ahttp_request::remHeader(key);
+}
+
+//------------------------------------------------------------------------------
+void ahttp::flushRequestHeaders() {
+	printf("AHTTP: Flushing all headers\n");
+	ahttp_request::flushHeaders();
+}
+
+// APFSDS
+
+//------------------------------------------------------------------------------
 void ahttp::test(char* message) {
-	printf("AHTTP: testing binding\n");
+	printf("AHTTP: testing binding.\n");
 	printf(message);
 	quick::LUA_EVENT_PREPARE("complete");
 	quick::LUA_EVENT_SET_STRING("url", "www.foo.com/test/test_file.txt");

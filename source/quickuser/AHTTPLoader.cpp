@@ -2,68 +2,70 @@
 * (C) 2014-2015 Kidloom.
 *
 * This class is designed to funnel a datastream from an HTTP connection into a file
-* handle within the local filesystem.
+* handle within the local filesystem. Asynchronous data reading is used with the IWHTTP
+* library to enable non-blocking downloads in paralell for the LUA layer.
 *
 * Author: S.J.Elizalde
 *         santa@kidloom.com
 */
 
-#include "Loader.h"
+#include "AHTTPLoader.h"
 #include "QLuaHelpers.h"
 #include <iostream>
 #include <string>
 
 // List of active loaders
-kidloom_loader::Loader* kidloom_loader::loaders[MAX_CONCURRENT_DOWNLOADS];
+ahttp_loader::AHTTPLoader* ahttp_loader::loaders[MAX_CONCURRENT_DOWNLOADS];
 
 // Current loader count (for list consistency purposes)
-uint32 kidloom_loader::current_downlaods = 0;
+uint32 ahttp_loader::current_downloads = 0;
 
 //-------------------------------------------------------------------------
 // Loaders call this method when completed, to be destroyed and removed.
-void kidloom_loader::on_load_complete(void* instance) {
+void ahttp_loader::on_load_complete(void* instance) {
 	
-	Loader* loader = (Loader*)instance;
+	AHTTPLoader* loader = (AHTTPLoader*)instance;
 	
 	uint slot = loader->getSlot();
 	loaders[slot] = NULL;
-	current_downlaods--;
+	current_downloads--;
 	loader->notifyStatus();
-	loader->~Loader();
+	loader->~AHTTPLoader();
 }
 
 //-------------------------------------------------------------------------
 // The C++ API for LUA will call this method to begin a download
-void kidloom_loader::openRequest(char* url, char* filename) {
+bool ahttp_loader::openRequest(char* url, char* filename) {
 	
-	if (current_downlaods >= MAX_CONCURRENT_DOWNLOADS) {
-		return;
+	if (current_downloads >= MAX_CONCURRENT_DOWNLOADS) {
+		return false;
 	}
 
 	for (int i = 0; i < MAX_CONCURRENT_DOWNLOADS; i++) {
 		if (loaders[i] == NULL) {
-			Loader* loader = new Loader(i, url, filename);
+			AHTTPLoader* loader = new AHTTPLoader(i, url, filename);
 
 			loaders[i] = loader;
 
 			loader->setCompleteCallback(on_load_complete);
-			current_downlaods++;
-			IwDebugTraceLinePrintf("AHTTP: OPENING SLOT [%d] (current downloads = %d)\n", i, current_downlaods);
+			current_downloads++;
+			IwDebugTraceLinePrintf("AHTTP: OPENING SLOT [%d] (current downloads = %d)\n", i, current_downloads);
 			IwDebugTraceLinePrintf(">>>    REMOTE_URL [%s]\n", url);
 			IwDebugTraceLinePrintf(">>>    LOCAL_URL [%s]\n", filename);
 			loader->load();
-			break;
+			return true;
 		}
 	}
+	return false;
 }
 
 //-------------------------------------------------------------------------
 // Static callbacks delegate socket data processing to loader's implementation
-int32 kidloom_loader::http_dataReceived(void* sysData, void* instance) {
-	Loader* loader = (Loader*)instance;
+int32 ahttp_loader::http_dataReceived(void* sysData, void* instance) {
+	AHTTPLoader* loader = (AHTTPLoader*)instance;
 	if (loader->getStatus() != DOWNLOADING) {
 		IwDebugTraceLinePrintf("AHTTP: LOADER %d INVALID STATE [%s], expected [in_progress] \n", loader->getSlot(), loader->getStatusString());
-		loader->~Loader();
+		loader->~AHTTPLoader();
 		return 1;
 	}
 	loader->readContent();
@@ -72,11 +74,11 @@ int32 kidloom_loader::http_dataReceived(void* sysData, void* instance) {
 
 //-------------------------------------------------------------------------
 // Static callbacks delegate socket data processing to loader's implementation
-int32 kidloom_loader::http_headersReceived(void* sysData, void* instance) {
-	Loader* loader = (Loader*)instance;
+int32 ahttp_loader::http_headersReceived(void* sysData, void* instance) {
+	AHTTPLoader* loader = (AHTTPLoader*)instance;
 	if (loader->getStatus() != CONNECTING) {
 		IwDebugTraceLinePrintf("AHTTP: LOADER %d INVALID STATE [%s], expected [begin] \n", loader->getSlot(), loader->getStatusString());
-		loader->~Loader();
+		loader->~AHTTPLoader();
 		return 1;
 	}
 	loader->readHeader();
@@ -85,7 +87,7 @@ int32 kidloom_loader::http_headersReceived(void* sysData, void* instance) {
 
 //--------------------------------------------------------------------------------------------------------------------------------------------------
 // LOADER CLASS
-kidloom_loader::Loader::Loader(uint32 num, char* url, char* filename) {
+ahttp_loader::AHTTPLoader::AHTTPLoader(uint32 num, char* url, char* filename) {
 	
 	slot = num;
 	remote_url = url;
@@ -101,7 +103,7 @@ kidloom_loader::Loader::Loader(uint32 num, char* url, char* filename) {
 
 //-------------------------------------------------------------------------
 // Begins the loading process for the set pair of URLs
-bool kidloom_loader::Loader::load() {
+bool ahttp_loader::AHTTPLoader::load() {
 
 	if (status != NONE) {
 		return false;
@@ -119,7 +121,7 @@ bool kidloom_loader::Loader::load() {
 
 //-------------------------------------------------------------------------
 // Checks for connection or HTTP errors and returns true if all is OK
-bool kidloom_loader::Loader::checkRequestStatus() {
+bool ahttp_loader::AHTTPLoader::checkRequestStatus() {
 
 	bool res = false;
 	if (net_connection->GetStatus() == S3E_RESULT_ERROR) {
@@ -148,7 +150,7 @@ bool kidloom_loader::Loader::checkRequestStatus() {
 
 //-------------------------------------------------------------------------
 // Read header data from an established HTTP connection
-bool kidloom_loader::Loader::readHeader() {
+bool ahttp_loader::AHTTPLoader::readHeader() {
 
 	if (checkRequestStatus() == false) {
 		//Notify the LUA layer if there was an error
@@ -166,7 +168,7 @@ bool kidloom_loader::Loader::readHeader() {
 	
 	IwDebugTraceLinePrintf(">>>          Allocating read buffer of [%d] bytes\n", buffer_size);
 	buffer = (char*)s3eMalloc(buffer_size+1);
-	IwAssertMsg(AHTTP, buffer != NULL, ("Loader was unable to allocate [%d bytes] to the socket read buffer.", buffer_size));
+	IwAssertMsg(AHTTP, buffer != NULL, ("AHTTPLoader was unable to allocate [%d bytes] to the socket read buffer.", buffer_size));
 
 	net_connection->ReadDataAsync(buffer, buffer_size, HTTP_READ_TIMEOUT, http_dataReceived, this);
 	setStatus(DOWNLOADING);
@@ -175,7 +177,7 @@ bool kidloom_loader::Loader::readHeader() {
 
 //-------------------------------------------------------------------------
 // Read content data from an established HTTP connection
-bool kidloom_loader::Loader::readContent() {
+bool ahttp_loader::AHTTPLoader::readContent() {
 	if (checkRequestStatus() == false) {
 		//notify the lua layer if there was an error
 		notifyStatus();
@@ -227,7 +229,7 @@ bool kidloom_loader::Loader::readContent() {
 
 //-------------------------------------------------------------------------
 // Sends a status event to the LUA layer
-void kidloom_loader::Loader::notifyStatus() {
+void ahttp_loader::AHTTPLoader::notifyStatus() {
 
 	IwDebugTraceLinePrintf("AHTTPLoader[%d]: sending status event...\n", slot);
 	quick::LUA_EVENT_PREPARE("http_event");
@@ -247,28 +249,28 @@ void kidloom_loader::Loader::notifyStatus() {
 
 //-------------------------------------------------------------------------
 // Changes loader status and prints debug state data to log
-void kidloom_loader::Loader::setStatus(LoaderStatus newStatus) {
+void ahttp_loader::AHTTPLoader::setStatus(RequestStatus newStatus) {
 	status = newStatus;
 	IwDebugTraceLinePrintf("AHTTPLoader[%d]: Changed state to [%s]\n", slot, this->getStatusString());
 }
 
 //-------------------------------------------------------------------------
 // sets the complete callback to call when the loader finishes its task
-void kidloom_loader::Loader::setCompleteCallback(loaderCallback cb) {
+void ahttp_loader::AHTTPLoader::setCompleteCallback(loaderCallback cb) {
 	if (cb) {
 		callback = cb;
 	}
 }
 
 //-------------------------------------------------------------------------
-// GETTER: current loader status, as defined by LoaderStatus Enum
-LoaderStatus kidloom_loader::Loader::getStatus() {
+// GETTER: current loader status, as defined by RequestStatus Enum
+RequestStatus ahttp_loader::AHTTPLoader::getStatus() {
 	return status;
 }
 
 //-------------------------------------------------------------------------
 // GETTER: string status, to be passed directly to LUA event handlers (LUA status enum)
-char* kidloom_loader::Loader::getStatusString() {
+char* ahttp_loader::AHTTPLoader::getStatusString() {
 	switch (status)
 	{
 	case CONNECTING:
@@ -291,43 +293,43 @@ char* kidloom_loader::Loader::getStatusString() {
 
 //-------------------------------------------------------------------------
 // GETTER: slot number corresponding to the loader's place in the loader array
-uint32 kidloom_loader::Loader::getSlot() {
+uint32 ahttp_loader::AHTTPLoader::getSlot() {
 	return slot;
 }
 
 //-------------------------------------------------------------------------
 // GETTER: Local file URL where remote data is being stored
-char* kidloom_loader::Loader::getLocalURL() {
+char* ahttp_loader::AHTTPLoader::getLocalURL() {
 	return local_url;
 }
 
 //-------------------------------------------------------------------------
 // GETTER: Remote server URL where the data is hosted
-char* kidloom_loader::Loader::getRemoteURL() {
+char* ahttp_loader::AHTTPLoader::getRemoteURL() {
 	return remote_url;
 }
 
 //-------------------------------------------------------------------------
 // GETTER: Connection object (CIwHTTP socket wrapper)
-CIwHTTP* kidloom_loader::Loader::getConnection() {
+CIwHTTP* ahttp_loader::AHTTPLoader::getConnection() {
 	return net_connection;
 }
 
 //-------------------------------------------------------------------------
 // GETTER: Filesystem file handle (always write mode)
-s3eFile* kidloom_loader::Loader::getFileHandle() {
+s3eFile* ahttp_loader::AHTTPLoader::getFileHandle() {
 	return file_handle;
 }
 
 //-------------------------------------------------------------------------
-kidloom_loader::Loader::~Loader() {
+ahttp_loader::AHTTPLoader::~AHTTPLoader() {
 	
 	if (status == DESTROYED) {
-		IwDebugTraceLinePrintf("AHTTPLoader: Attempted to destroy an already destroyed Loader \n");
+		IwDebugTraceLinePrintf("AHTTPLoader: Attempted to destroy an already destroyed AHTTPLoader \n");
 		return;
 	}
 
-	IwDebugTraceLinePrintf("AHTTPLoader[%d]: Destroying Loader [FILE:%s][URL:%s] \n", slot, local_url, remote_url);
+	IwDebugTraceLinePrintf("AHTTPLoader[%d]: Destroying AHTTPLoader [FILE:%s][URL:%s] \n", slot, local_url, remote_url);
 	if (net_connection && !net_connection->ContentFinished()) {
 		net_connection->Cancel(true);
 	}
