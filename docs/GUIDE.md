@@ -151,6 +151,7 @@ Here's a brief of the event parameters:
       ecode,
       percent,
       url,
+      result,
       filename
     }
 
@@ -172,4 +173,5 @@ Other values:
 
 - **percent** (FLOAT): a float between 0 and 1, indicating socket read progress, ingnore unless the event status is 'in_progress'.
 - **url** (STRING): the request's remote URL.
-- **filename** (STRING): the request's local file URL (to which the stream will be downloaded)
+- **filename** (STRING): the request's local file URL (to which the stream will be downloaded). only present for requests made through the *downloadURL()* method.
+- **result** (STRING): the request's result, only present when the status code is "complete", and if the request was made through the *requestURL()* method.
