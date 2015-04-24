@@ -5,6 +5,7 @@
 #define MAX_CONCURRENT_REQUESTS 10
 #define HTTP_READ_TIMEOUT 120
 #define BASE_READ_CHUNK 32768
+#define MAX_RESPONSE_SIZE 262144
 #define LUA_EVENT_NAME "http_request_event"
 
 enum RequestMethod {

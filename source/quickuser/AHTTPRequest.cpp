@@ -133,13 +133,14 @@ bool ahttp_request::AHTTPRequest::load() {
 	}
 	bool success = false;
 	
+	IwDebugTraceLinePrintf("AHTTPRequest[%d]: Request called [url: %s] [method: %d]\n", slot, remote_url, http_method);
 	switch (http_method) {
 		case GET:
-			success = this->net_connection->Get(remote_url, http_headersReceived, this) != S3E_RESULT_SUCCESS;
+			success = this->net_connection->Get(remote_url, http_headersReceived, this) == S3E_RESULT_SUCCESS;
 			break;
 		case POST:
-			int32 bodylen = strlen(request_body)*sizeof(request_body);
-			success = this->net_connection->Post(remote_url, request_body, bodylen, http_headersReceived, this) != S3E_RESULT_SUCCESS;
+			int32 bodylen = strlen(request_body)*sizeof(char);
+			success = this->net_connection->Post(remote_url, request_body, bodylen, http_headersReceived, this) == S3E_RESULT_SUCCESS;
 			break;
 	}
 
@@ -197,18 +198,23 @@ bool ahttp_request::AHTTPRequest::readHeader() {
 	IwDebugTraceLinePrintf("AHTTPRequest[%d]: Headers Received, [%d] bytes of data expected\n", slot, net_connection->ContentExpected());
 	
 	// Calculate buffer size and allocate buffer memory
-buffer_size = net_connection->ContentExpected() - net_connection->ContentReceived();
-IwDebugTraceLinePrintf(">>>          Allocating result buffer of [%d] bytes\n", buffer_size);
-result_buffer = (char*)s3eMalloc(buffer_size + 1);
-buffer_size = (buffer_size > BASE_READ_CHUNK) ? BASE_READ_CHUNK : buffer_size;
+	buffer_size = net_connection->ContentExpected() - net_connection->ContentReceived();
+	if (buffer_size > MAX_RESPONSE_SIZE) {
+		//Notify content size error
+		setStatus(ERROR);
+		error_code = 3;
+		callback(this);
+		return false;
+	}
+	IwDebugTraceLinePrintf(">>>          Allocating result buffer of [%d] bytes\n", buffer_size);
 
-IwDebugTraceLinePrintf(">>>          Allocating read buffer of [%d] bytes\n", buffer_size);
-buffer = (char*)s3eMalloc(buffer_size + 1);
-IwAssertMsg(AHTTP, buffer != NULL, ("AHTTPRequest was unable to allocate [%d bytes] to the socket read buffer.", buffer_size));
+	IwDebugTraceLinePrintf(">>>          Allocating read buffer [%d] of [%d] bytes\n", &buffer, buffer_size);
+	buffer = (char*)s3eMalloc(buffer_size + 1);
+	IwAssertMsg(AHTTP, buffer != NULL, ("AHTTPRequest was unable to allocate [%d bytes] to the socket read buffer.", buffer_size));
 
-net_connection->ReadDataAsync(buffer, buffer_size, HTTP_READ_TIMEOUT, http_dataReceived, this);
-setStatus(DOWNLOADING);
-return true;
+	net_connection->ReadDataAsync(buffer, buffer_size, HTTP_READ_TIMEOUT, http_dataReceived, this);
+	setStatus(DOWNLOADING);
+	return true;
 }
 
 //-------------------------------------------------------------------------
@@ -219,16 +225,14 @@ bool ahttp_request::AHTTPRequest::readContent() {
 		notifyStatus();
 		return false;
 	}
-	IwDebugTraceLinePrintf("AHTTPRequest[%d]: Received data, [%d of %d] bytes downloaded\n", slot, net_connection->ContentReceived(), net_connection->ContentExpected());
+	IwDebugTraceLinePrintf("AHTTPRequest[%d]: Reading data from stream '%s'", slot, remote_url);
+	IwDebugTraceLinePrintf(">>>         [%d of %d] bytes downloaded\n", slot, net_connection->ContentReceived(), net_connection->ContentExpected());
 
 	uint32 read_len = net_connection->ContentReceived() - bytes_read;
 	bytes_read = net_connection->ContentReceived();
 
-	result_buffer = strcat(result_buffer, buffer);
-
 	if (net_connection->ContentFinished()) {
-		// free buffer memory, set complete status and notify
-		s3eFree(buffer);
+		// set complete status and notify
 		setStatus(COMPLETE);
 		callback(this);
 		return true;
@@ -238,13 +242,6 @@ bool ahttp_request::AHTTPRequest::readContent() {
 		buffer_size = net_connection->ContentExpected() - net_connection->ContentReceived();
 		buffer_size = (buffer_size > BASE_READ_CHUNK) ? BASE_READ_CHUNK : buffer_size;
 
-		/*
-		// Reallocate buffer memory and read next chunk
-		if (sizeof(buffer) != buffer_size + 1) {
-		IwDebugTraceLinePrintf(">>>          Rellocating read buffer of [%d] bytes\n", buffer_size);
-		buffer = (char*)s3eRealloc(buffer, buffer_size + 1);
-		}
-		*/
 		net_connection->ReadDataAsync(buffer, buffer_size, HTTP_READ_TIMEOUT, http_dataReceived, this);
 	}
 	notifyStatus();
@@ -298,7 +295,7 @@ RequestStatus ahttp_request::AHTTPRequest::getStatus() {
 // GETTER: request result if available, null otherwise
 char* ahttp_request::AHTTPRequest::getResult() {
 	if (status == COMPLETE || status == ERROR) {
-		return result_buffer;
+		return buffer;
 	}
 	return NULL;
 }
@@ -352,16 +349,16 @@ ahttp_request::AHTTPRequest::~AHTTPRequest() {
 		return;
 	}
 
-	IwDebugTraceLinePrintf("AHTTPRequest[%d]: Destroying AHTTPRequest [FILE:%s][URL:%s] \n", slot, remote_url);
+	IwDebugTraceLinePrintf("AHTTPRequest[%d]: Destroying AHTTPRequest [URL:%s] \n", slot, remote_url);
 	if (net_connection && !net_connection->ContentFinished()) {
 		net_connection->Cancel(true);
 	}
 	net_connection = NULL;
 	
-	if (sizeof(result_buffer)) {
-		s3eFree(result_buffer);
+	if (strlen(buffer)) {
+		s3eFree(buffer);
 	}
-	result_buffer = NULL;
+	
 	remote_url = NULL;
 	callback = NULL;
 	buffer_size = NULL;
