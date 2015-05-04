@@ -330,8 +330,8 @@ ahttp_loader::AHTTPLoader::~AHTTPLoader() {
 	}
 
 	IwDebugTraceLinePrintf("AHTTPLoader[%d]: Destroying AHTTPLoader [FILE:%s][URL:%s] \n", slot, local_url, remote_url);
-	if (net_connection && !net_connection->ContentFinished()) {
-		net_connection->Cancel(true);
+	if (net_connection) {
+		net_connection->~CIwHTTP();
 	}
 	net_connection = NULL;
 	if (status == ERROR && file_handle) {

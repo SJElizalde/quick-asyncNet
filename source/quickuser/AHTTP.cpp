@@ -7,7 +7,7 @@
 #include "QLuaHelpers.h"
 #include "AHTTP.h"
 
-#define AHTTP_MAX_CONNECTIONS 6
+#define AHTTP_MAX_CONNECTIONS 5
 
 //------------------------------------------------------------------------------
 uint32 ahttp::getMaxConnections() {
@@ -15,7 +15,9 @@ uint32 ahttp::getMaxConnections() {
 }
 //------------------------------------------------------------------------------
 uint32 ahttp::getActiveConnections() {
-	return ahttp_loader::current_downloads + ahttp_request::current_downloads;
+	uint32 current_downloads = ahttp_loader::current_downloads + ahttp_request::current_downloads;
+	IwDebugTraceLinePrintf("AHTTP: open sockets -> [%d]\n", current_downloads);
+	return current_downloads;
 }
 //------------------------------------------------------------------------------
 uint32 ahttp::getAvailableConnections() {
@@ -23,7 +25,7 @@ uint32 ahttp::getAvailableConnections() {
 }
 //------------------------------------------------------------------------------
 bool ahttp::downloadURL(char* url, char* filename) {
-	printf("AHTTP: downloadURL called.\n");
+	IwDebugTraceLinePrintf("AHTTP: downloadURL called.\n");
 	if (getActiveConnections() >= AHTTP_MAX_CONNECTIONS) {
 		return false;
 	}
@@ -31,8 +33,7 @@ bool ahttp::downloadURL(char* url, char* filename) {
 }
 //------------------------------------------------------------------------------
 bool ahttp::requestURL(char* url, char* method, char* body) {
-	printf("AHTTP: requestURL called\n");
-	uint32 current = ahttp_loader::current_downloads + ahttp_request::current_downloads;
+	IwDebugTraceLinePrintf("AHTTP: requestURL called\n");
 	if (getActiveConnections() >= AHTTP_MAX_CONNECTIONS) {
 		return false;
 	}
@@ -47,19 +48,19 @@ bool ahttp::requestURL(char* url, char* method, char* body) {
 
 //------------------------------------------------------------------------------
 void ahttp::addRequestHeader(char* key, char* value) {
-	printf("AHTTP: Setting header '%s': %s\n", key, value);
+	IwDebugTraceLinePrintf("AHTTP: Setting header '%s': %s\n", key, value);
 	ahttp_request::addHeader(key, value);
 }
 
 //------------------------------------------------------------------------------
 void ahttp::removeRequestHeader(char* key) {
-	printf("AHTTP: Removing header '%s'\n", key);
+	IwDebugTraceLinePrintf("AHTTP: Removing header '%s'\n", key);
 	ahttp_request::remHeader(key);
 }
 
 //------------------------------------------------------------------------------
 void ahttp::flushRequestHeaders() {
-	printf("AHTTP: Flushing all headers\n");
+	IwDebugTraceLinePrintf("AHTTP: Flushing all headers\n");
 	ahttp_request::flushHeaders();
 }
 
@@ -67,8 +68,7 @@ void ahttp::flushRequestHeaders() {
 
 //------------------------------------------------------------------------------
 void ahttp::test(char* message) {
-	printf("AHTTP: testing binding.\n");
-	printf(message);
+	IwDebugTraceLinePrintf("AHTTP: testing LUA binding.\n");
 	quick::LUA_EVENT_PREPARE("complete");
 	quick::LUA_EVENT_SET_STRING("url", "www.foo.com/test/test_file.txt");
 	quick::LUA_EVENT_SET_STRING("filename", "test/test_file.txt");

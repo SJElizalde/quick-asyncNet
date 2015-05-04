@@ -54,6 +54,8 @@ void ahttp_request::on_load_complete(void* instance) {
 // The C++ API for LUA will call this method to begin a download
 bool ahttp_request::openRequest(char* url, uint32 method, char* body) {
 	
+	IwDebugTraceLinePrintf(">>>    REMOTE_URL(1) [%s]\n", url);
+
 	if (current_downloads >= MAX_CONCURRENT_REQUESTS) {
 		return false;
 	}
@@ -64,10 +66,12 @@ bool ahttp_request::openRequest(char* url, uint32 method, char* body) {
 
 			requests[i] = loader;
 
+			loader->setHeaders(request_headers);
+			flushHeaders();
 			loader->setCompleteCallback(on_load_complete);
 			current_downloads++;
 			IwDebugTraceLinePrintf("AHTTP: OPENING SLOT [%d] (current requests = %d)\n", i, current_downloads);
-			IwDebugTraceLinePrintf(">>>    REMOTE_URL [%s]\n", url);
+			IwDebugTraceLinePrintf(">>>    REMOTE_URL(2) [%s]\n", url);
 			loader->load();
 			return true;
 		}
@@ -94,7 +98,7 @@ int32 ahttp_request::http_headersReceived(void* sysData, void* instance) {
 	AHTTPRequest* request = (AHTTPRequest*)instance;
 	if (request->getStatus() != CONNECTING) {
 		IwDebugTraceLinePrintf("AHTTP: REQUEST %d INVALID STATE [%s], expected [begin] \n", request->getSlot(), request->getStatusString());
-		//request->~AHTTPRequest();
+		request->~AHTTPRequest();
 		return 1;
 	}
 	request->readHeader();
@@ -111,6 +115,7 @@ ahttp_request::AHTTPRequest::AHTTPRequest(uint32 num, char* url, uint32 method, 
 	request_body = body;
 	error_code = 0;
 	bytes_read = 0;
+	buffer_size = 0;
 	bytes_written = 0;
 	status = NONE;
 	this->net_connection = new CIwHTTP();
@@ -134,6 +139,7 @@ bool ahttp_request::AHTTPRequest::load() {
 	bool success = false;
 	
 	IwDebugTraceLinePrintf("AHTTPRequest[%d]: Request called [url: %s] [method: %d]\n", slot, remote_url, http_method);
+	
 	switch (http_method) {
 		case GET:
 			success = this->net_connection->Get(remote_url, http_headersReceived, this) == S3E_RESULT_SUCCESS;
@@ -201,16 +207,15 @@ bool ahttp_request::AHTTPRequest::readHeader() {
 	buffer_size = net_connection->ContentExpected() - net_connection->ContentReceived();
 	if (buffer_size > MAX_RESPONSE_SIZE) {
 		//Notify content size error
+		IwDebugTraceLinePrintf("AHTTPRequest[%d]: ERROR response size too large. resultsize [%d] grater than max [%d] \n", slot, buffer_size, MAX_RESPONSE_SIZE);
 		setStatus(ERROR);
 		error_code = 3;
 		callback(this);
 		return false;
 	}
-	IwDebugTraceLinePrintf(">>>          Allocating result buffer of [%d] bytes\n", buffer_size);
-
 	IwDebugTraceLinePrintf(">>>          Allocating read buffer [%d] of [%d] bytes\n", &buffer, buffer_size);
 	buffer = (char*)s3eMalloc(buffer_size + 1);
-	IwAssertMsg(AHTTP, buffer != NULL, ("AHTTPRequest was unable to allocate [%d bytes] to the socket read buffer.", buffer_size));
+	IwAssertMsg(AHTTP, buffer != NULL, ("AHTTPRequest[%d]: was unable to allocate [%d bytes] to the socket read buffer.", slot, buffer_size));
 
 	net_connection->ReadDataAsync(buffer, buffer_size, HTTP_READ_TIMEOUT, http_dataReceived, this);
 	setStatus(DOWNLOADING);
@@ -350,15 +355,15 @@ ahttp_request::AHTTPRequest::~AHTTPRequest() {
 	}
 
 	IwDebugTraceLinePrintf("AHTTPRequest[%d]: Destroying AHTTPRequest [URL:%s] \n", slot, remote_url);
-	if (net_connection && !net_connection->ContentFinished()) {
-		net_connection->Cancel(true);
+	if (net_connection) {
+		net_connection->~CIwHTTP();
 	}
 	net_connection = NULL;
 	
-	if (strlen(buffer)) {
+	if (buffer_size > 0 && strlen(buffer)) {
 		s3eFree(buffer);
 	}
-	
+
 	remote_url = NULL;
 	callback = NULL;
 	buffer_size = NULL;
