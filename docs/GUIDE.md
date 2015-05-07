@@ -11,23 +11,23 @@ Also, before beginning, users should take into account that the results of this 
 
 *NOTE:* I wrote the guidelines for Windows systems. If you use a Mac then go ask Steve Jobs.
 
-Installing Async HTTP:
-----------------------
+## Installing Async HTTP:
+
 The easiest way to integrate this library into Marmalade Quick is to follow the official documentation for extending Quick (mentioned earlier). In it you will find a detailed guide with all the steps needed (*it's fairly straightforward when you've done it two or three times, just have patience*). The only thing you need outside of Marmalade's guide is the source code in this repo.
 
-Prerequisites:
---------------
+## Prerequisites:
+
 - Install Marmalade (7.4 and up supported).
 - Install Visual Studio [required by Marmalade C++](http://docs.madewithmarmalade.com/display/MD/Working+with+your+IDE#WorkingwithyourIDE-Marmalade'sintegrationwithVisualStudioonWindows)
 - Clone quick-asyncNet repository.
 
-The overall steps are as follows:
----------------------------------
-**1) COPY LIBRARY SOURCE CODE:**
+## The overall steps are as follows:
+
+### 1) COPY LIBRARY SOURCE CODE:
 
 Copy the contents of "quickuser" in this repo to the Marmalade SDK location's "/quick/quickuser" (you will probably need to create the 'quickuser' folder).
 
-**2) ADD IWHTTP TO THE PROJECT PATH**
+### 2) ADD IWHTTP TO THE PROJECT PATH
 
 Open *'MARMALADE_HOME/quick/quick.mkf'*, find the subprojects section (at the bottom of the file) and add *iwhttp*. This will include marmalade C++'s http library, required to implement async downloading in quick.
 
@@ -46,7 +46,7 @@ The *subprojects* section of *'quick.mkf'* should now look like this:
     
 You should see GCC building iwhttp related files (such as CIwHTTP.cpp) in Marmalade's build output from now on.
 
-**3) ADD SOURCE FILES TO quickuser_tolua.pkg**
+### 3) ADD SOURCE FILES TO quickuser_tolua.pkg
 
 Open *'MARMALADE_HOME/quick/quickuser_tolua.pkg'*, add the following line:
 
@@ -62,7 +62,7 @@ If you are starting from scratch with the default file, it sould now look like t
 
 The path you enter here must be relative to your *MARMALADE_HOME/quick* directory.
 
-**3.1) ADD ALL SOURCES TO PROJECT**
+### 3.1) ADD ALL SOURCES TO PROJECT
 
 I am not exactly sure if this is required, but I do it to keep the source files in my VS project, otherwise they seem to disappear (I never said I was a pro, did I?).
 
@@ -98,7 +98,7 @@ It should look like this if you started from scratch:
 
 *NOTE:* the *(quickuser)* notation indicates all the files below are in the *'/quickuser'* directory inside the root.
 
-**4) RUN LUA CODE GENERATOR:**
+### 4) RUN LUA CODE GENERATOR:
 
 In a new cmd console go to *'MARMALADE_HOME/quick'* and enter the following command:
 
@@ -106,7 +106,7 @@ In a new cmd console go to *'MARMALADE_HOME/quick'* and enter the following comm
 
 This should have added the new LUA bindings to *'quickuser_tolua.cpp'*, If you want, you can check this by opening the cpp file and searching for a **'downloadURL'** function or the "ahttp" namespace.
 
-**5) BUILD MARMALADE QUICK**
+### 5) BUILD MARMALADE QUICK
 
 Find quick_prebuilt.mkb in marmalade's *'/quick'* directory, right click it and select "build". In case this fails (usually due to RVCT licensing stuff on the RVCT builds), you can allways build the targets one by one either on the right click menu or from the Visual Studio project.
 
@@ -138,7 +138,7 @@ Simple LUA sample (there's a more comprehensive test project in *source/examples
     -- Begin download
     ahttp.downloadURL("http://www.google.com/favicon.ico", "google_favicon.ico")
     
-**IMPORTANT:** For performance reasons, Async HTTP has a hard limit to concurrent downloads. This limit is **5 (FIVE CONCURRENT OPERATIONS)**. Calls to **downloadURL** while already processing 5 other requests will result in no action whatsoever, with no feedback of any type. Be sure to enforce this limit in your LUA implementation.
+**IMPORTANT:** For performance reasons, Async HTTP has a hard limit to concurrent downloads. This limit is **5 (FIVE CONCURRENT OPERATIONS)**. Calls to *downloadURL* while already processing 5 other requests will not call, enqueue or store the request in any way, returning "false" to the caller as a warning. Be sure to enforce this limit in your LUA implementation.
 
 **HTTP EVENTS:**
 
@@ -167,6 +167,7 @@ Here's a brief of the event parameters:
 - 0: Operation OK, no errors, no info.
 - 1: Connection Error (invalidated socket, connection timeout, bad gateway)
 - 2: File Error (Unable to open file handle or failure to write data to disk)
+- 3: Maximum response size exceeded (hard limit for non-download calls is 256kb)
 - XXX: all values other than 0, 1 and 2 correspond to HTTP response codes (*i.e. 200 is OK, 404 is NOT FOUND*)
 
 Other values:
