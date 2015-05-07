@@ -112,7 +112,7 @@ Find quick_prebuilt.mkb in marmalade's *'/quick'* directory, right click it and 
 
 Grab a cup o' Joe, it may take a while....
 
-*NOTE*: As of Marmalade 7.4.3, I had to manually transfer the built binaries (*quick_prebuilt.s3e* and *quick_prebuilt_d.s3e* files in case of ARM) from the *targets/win* folder to their proper place in *target/arm*. You may have to do this as well, check file modification dates just in case.
+*NOTE*: As of Marmalade 7.4.3, I had to manually transfer the built binaries (*quick_prebuilt.s3e* and *quick_prebuilt_d.s3e* files in case of ARM) from the *targets/win* folder to their proper place in *target/arm*. This issue was addressed with the new build scripts in Marmalade [7.7.0](http://docs.madewithmarmalade.com/display/MD/Release+Notes#ReleaseNotes-7.7ReleaseNotes).
 
 **THAT'S THAT!**
 
