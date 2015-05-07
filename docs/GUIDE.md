@@ -120,11 +120,50 @@ if the builds went well, then enjoy your parallel downloading!
 
 Using ASYNC HTTP from LUA:
 --------------------------
-Usage is extremely simple, if properly installed and compiled, the static module **ahttp** is made available through LUA. this module has a **downloadURL** method, which receives a remote URL and a local file URL as parameters. Once called, **downloadURL** will open a request to the remote URL and then proceed to download the contents into a file (thus the local URL).
+Usage is fairly simple, if properly installed and compiled, the static module **ahttp** is made available through LUA. This module exposes two methods for performing requests, one does GET and POST requests and the other is used for direct-downloading files. Both methods return a boolean value for indicating immediate errors with the call ('true' always  means success). Both methods are explained below.
+
+**requestURL**
+
+This method receives the remote URL, http method (*get*, *post*) and request body. The request will be performed and the response will be sent through the 'complete' *http_event*.
+
+LUA Code sample:
+
+    function http_handler(evt)
+      if evt.status = "complete" then
+        print("Request complete, response: "..evt.result)
+      elseif evt.status == "error" then
+        print("Request error (" .. evt.ecode .. ")")
+      end
+    end
+    -- Add http event listener to catch complete and / or errors
+    system:addEventListener("http_event", http_handler)
+    -- Begin download
+    ahttp.requestURL("https://api.twitter.com/1.1/help/tos.json", "get", "{}")
+    
+Setting request Headers:
+the *ahttp* module provides get, remove and flush methods for managing the request headers. The *ahttp.requestURL* method will send the HTTP request using all headers that are set at the moment, and the header list will be cleaned. This means that headers are reset every time a request is sent.
+
+LUA Code sample:
+
+    -- Clear all set headers just in case
+    ahttp.flushRequestHeaders()
+    -- Set headers "content-type" and "custom-header" providing header names and values
+    ahttp.addRequestHeader("content-type", "application/json")
+    ahttp.addRequestHeader("custom-header", "custom-value")
+    -- Remove header "custom-header" using the header's name
+    ahttp.removeRequestHeader("custom-header")
+    -- Begin download (will send the "content-type" header that was left in the list
+    ahttp.requestURL("https://api.twitter.com/1.1/help/tos.json", "get", "{}")
+
+*be aware: requests sent by the downloadURL API don't use these headers and therefore they DO NOT flush the header list.*
+    
+**downloadURL**
+
+This method receives a remote URL and a local file URL as parameters. Once called, **downloadURL** will open a request to the remote URL and then proceed to download the contents into a file (thus the local URL).
 
 Completion and error notices are sent to the LUA layer through Quick LUA's event system, by listening to the type **"http_event"** as you would normally [listen other system events](http://docs.madewithmarmalade.com/display/MD/Touch+and+Other+Events).
 
-Simple LUA sample (there's a more comprehensive test project in *source/examples*):
+LUA Code sample:
 
     function http_handler(evt)
       if evt.status = "complete" then
@@ -138,7 +177,7 @@ Simple LUA sample (there's a more comprehensive test project in *source/examples
     -- Begin download
     ahttp.downloadURL("http://www.google.com/favicon.ico", "google_favicon.ico")
     
-**IMPORTANT:** For performance reasons, Async HTTP has a hard limit to concurrent downloads. This limit is **5 (FIVE CONCURRENT OPERATIONS)**. Calls to *downloadURL* while already processing 5 other requests will not call, enqueue or store the request in any way, returning "false" to the caller as a warning. Be sure to enforce this limit in your LUA implementation.
+**IMPORTANT:** For performance reasons, the Async HTTP library has a hard limit to concurrent downloads. This limit is **5 (FIVE CONCURRENT OPERATIONS)**. Calls to **downloadURL** or **requestURL** while already processing 5 other requests will result in no action(calls to both are cumulative), and the call will return **1** instead of the normal **0** to indicate an error.
 
 **HTTP EVENTS:**
 
