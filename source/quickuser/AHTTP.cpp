@@ -39,10 +39,10 @@ bool ahttp::requestURL(char* url, char* method, char* body) {
 	}
 	uint32 urlmethod = 0;
 	std::string strmethod = method;
-	if (strmethod == "post") {
-		urlmethod = 1;
-	}
-
+	if (strmethod == "post") { urlmethod = 1; }
+	if (strmethod == "put") { urlmethod = 2; }
+	if (strmethod == "delete") { urlmethod = 3; }
+	
 	return ahttp_request::openRequest(url, urlmethod, body);
 }
 
