@@ -10,7 +10,9 @@
 
 enum RequestMethod {
 	GET,
-	POST
+	POST,
+	PUT,
+	DELETE
 };
 
 enum RequestStatus {

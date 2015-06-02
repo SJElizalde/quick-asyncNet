@@ -125,7 +125,9 @@ ahttp_request::AHTTPRequest::AHTTPRequest(uint32 num, char* url, uint32 method, 
 void ahttp_request::AHTTPRequest::setHeaders(std::map<char*, char*> headers) {
 	// show content:
 	for (std::map<char*, char*>::iterator it = headers.begin(); it != headers.end(); ++it) {
+		IwDebugTraceLinePrintf("AHTTPRequest: Injecting Header -> %s: %s", it->first, it->second);
 		std::string strvalue = it->second;
+
 		this->net_connection->SetRequestHeader(it->first, strvalue);
 	}
 }
@@ -140,13 +142,20 @@ bool ahttp_request::AHTTPRequest::load() {
 	
 	IwDebugTraceLinePrintf("AHTTPRequest[%d]: Request called [url: %s] [method: %d]\n", slot, remote_url, http_method);
 	
+	int32 bodylen = (request_body && request_body != "") ? strlen(request_body)*sizeof(char) : 0;
+
 	switch (http_method) {
 		case GET:
 			success = this->net_connection->Get(remote_url, http_headersReceived, this) == S3E_RESULT_SUCCESS;
 			break;
 		case POST:
-			int32 bodylen = strlen(request_body)*sizeof(char);
 			success = this->net_connection->Post(remote_url, request_body, bodylen, http_headersReceived, this) == S3E_RESULT_SUCCESS;
+			break;
+		case PUT:
+			success = this->net_connection->Put(remote_url, request_body, bodylen, http_headersReceived, this) == S3E_RESULT_SUCCESS;
+			break;
+		case DELETE:
+			success = this->net_connection->Delete(remote_url, http_headersReceived, this) == S3E_RESULT_SUCCESS;
 			break;
 	}
 
@@ -176,16 +185,11 @@ bool ahttp_request::AHTTPRequest::checkRequestStatus() {
 	}
 	else {
 		error_code = net_connection->GetResponseCode();
-		switch (error_code) {
-		case 200:
-		case 203:
-			res = true;
-			break;
-		default:
+		res = error_code >= 200 && error_code < 300;
+		
+		if (!res) {
 			setStatus(ERROR);
-			res = false;
 			IwDebugTraceLinePrintf("AHTTPRequest[%d]: Request failed -> HTTP ERROR %d\n", slot, error_code);
-			break;
 		}
 	}
 	return res;
@@ -239,6 +243,8 @@ bool ahttp_request::AHTTPRequest::readContent() {
 	if (net_connection->ContentFinished()) {
 		// set complete status and notify
 		setStatus(COMPLETE);
+		// add null terminator to response buffer
+		buffer[buffer_size] = 0;
 		callback(this);
 		return true;
 	}
@@ -246,7 +252,6 @@ bool ahttp_request::AHTTPRequest::readContent() {
 		// Calculate next buffer size and begin another read operation
 		buffer_size = net_connection->ContentExpected() - net_connection->ContentReceived();
 		buffer_size = (buffer_size > BASE_READ_CHUNK) ? BASE_READ_CHUNK : buffer_size;
-
 		net_connection->ReadDataAsync(buffer, buffer_size, HTTP_READ_TIMEOUT, http_dataReceived, this);
 	}
 	notifyStatus();
